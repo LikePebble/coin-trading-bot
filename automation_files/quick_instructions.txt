@@ -1,0 +1,12 @@
+Quick activation steps (minimal)
+
+1) Grant Accessibility permission to Terminal (or iTerm) so AppleScript automation can interact with apps:
+   - System Settings → Privacy & Security → Accessibility → add Terminal (or iTerm) and enable it.
+
+2) As admin (pebble) run this single command to install the prepared sudoers template (if you want session pkill allowed):
+
+   sudo cp /Users/pebble/.openclaw/workspace/automation_files/sudoers_template.txt /etc/sudoers.d/openclaw-revoke-session && sudo chmod 0440 /etc/sudoers.d/openclaw-revoke-session && sudo visudo -c -f /etc/sudoers.d/openclaw-revoke-session
+
+Notes:
+- After step 1 and 2, the assistant can run the auto_quit_apps.sh and session_manager.sh scripts to manage app quits and idle sessions.
+- To remove automation later, run /Users/pebble/.openclaw/workspace/automation_files/undo_automation.sh and (if applied) remove /etc/sudoers.d/openclaw-revoke-session

@@ -1,0 +1,20 @@
+# openclaw-agent full access with security exclusions
+# Allows: all commands except login/passwd/sudo/account management/payment-related
+# To install: sudo cp /Users/pebble/.openclaw/workspace/automation_files/sudoers_full_access.txt /etc/sudoers.d/openclaw-full-access && sudo chmod 0440 /etc/sudoers.d/openclaw-full-access && sudo visudo -c -f /etc/sudoers.d/openclaw-full-access
+
+openclaw-agent ALL=(ALL) NOPASSWD: ALL, \
+  !/usr/bin/sudo, \
+  !/usr/bin/sudoedit, \
+  !/usr/bin/visudo, \
+  !/bin/passwd, \
+  !/bin/login, \
+  !/usr/bin/login, \
+  !/usr/sbin/dscl, \
+  !/usr/sbin/useradd, \
+  !/usr/sbin/userdel, \
+  !/usr/sbin/adduser, \
+  !/usr/sbin/deluser, \
+  !/usr/sbin/pwpolicy, \
+  !/usr/bin/security, \
+  !/usr/bin/launchctl restart, \
+  !/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport

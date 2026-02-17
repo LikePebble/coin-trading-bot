@@ -1,0 +1,12 @@
+openclaw-agent ALL=(ALL) NOPASSWD: ALL, \
+  !/usr/bin/sudo, \
+  !/bin/passwd, \
+  !/bin/login, \
+  !/usr/bin/login, \
+  !/usr/sbin/dscl, \
+  !/usr/sbin/useradd, \
+  !/usr/sbin/userdel, \
+  !/usr/sbin/adduser, \
+  !/usr/sbin/deluser, \
+  !/usr/sbin/pwpolicy, \
+  !/usr/bin/security

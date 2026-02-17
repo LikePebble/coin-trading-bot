@@ -1,0 +1,3 @@
+# sha256 whitelist: put known-good hashes (one per line)
+# Example:
+# d2d2...  /path/to/file

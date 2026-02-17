@@ -1,0 +1,8 @@
+{
+  "metadata": {
+    "sourceModel": "openai-codex/gpt-5.3-codex",
+    "intent": "test"
+  },
+  "summary": "- 핵심 요약: You create short, faithful memory summaries. Summarize the assistant response below for long-term memory. Rules: 2-4 con",
+  "ts": "2026-02-17T13:06:35.249Z"
+}

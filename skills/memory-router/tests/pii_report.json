@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-02-17T13:06:35.250Z",
+  "threshold": 0.75,
+  "usingRealSessionsSpawn": false,
+  "casesTotal": 5,
+  "blockedCount": 4,
+  "commitCount": 1,
+  "results": [
+    {
+      "id": 1,
+      "label": "전화번호",
+      "text": "010-1234-5678",
+      "piiTypes": [
+        "Phone",
+        "Bank Account"
+      ],
+      "verifyConfidence": 0.93,
+      "blocked": true,
+      "committed": null
+    },
+    {
+      "id": 2,
+      "label": "주민등록번호",
+      "text": "900101-1234567",
+      "piiTypes": [
+        "Korean Resident ID"
+      ],
+      "verifyConfidence": 0.93,
+      "blocked": true,
+      "committed": null
+    },
+    {
+      "id": 3,
+      "label": "신용카드",
+      "text": "4111111111111111",
+      "piiTypes": [
+        "Credit Card"
+      ],
+      "verifyConfidence": 0.93,
+      "blocked": true,
+      "committed": null
+    },
+    {
+      "id": 4,
+      "label": "이메일+비밀번호",
+      "text": "email: test@example.com password: hunter2",
+      "piiTypes": [
+        "Email+Password Combo",
+        "Password Keyword"
+      ],
+      "verifyConfidence": 0.93,
+      "blocked": true,
+      "committed": null
+    },
+    {
+      "id": 5,
+      "label": "일반문장",
+      "text": "오늘 날씨 어때?",
+      "piiTypes": [],
+      "verifyConfidence": 0.93,
+      "blocked": false,
+      "committed": "/Users/pebble/.openclaw/workspace/skills/memory-router/tests/.tmp-memory/1771333595249_test.json"
+    }
+  ],
+  "requiredConfigChanges": [
+    "Provide runtime sessions_spawn binding (global.sessions_spawn or opts.sessions_spawn) to enable real model calls."
+  ]
+}

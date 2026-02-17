@@ -1,0 +1,8 @@
+# sudoers template: allow openclaw-agent to pkill specific ttys without password
+# To install (as admin):
+#   sudo cp /path/to/sudoers_template.txt /etc/sudoers.d/openclaw-revoke-session && sudo chmod 0440 /etc/sudoers.d/openclaw-revoke-session && sudo visudo -c -f /etc/sudoers.d/openclaw-revoke-session
+
+openclaw-agent ALL=(root) NOPASSWD: /usr/bin/pkill -t ttys000
+openclaw-agent ALL=(root) NOPASSWD: /usr/bin/pkill -t ttys001
+openclaw-agent ALL=(root) NOPASSWD: /usr/bin/pkill -t ttys002
+openclaw-agent ALL=(root) NOPASSWD: /usr/bin/pkill -t ttys003

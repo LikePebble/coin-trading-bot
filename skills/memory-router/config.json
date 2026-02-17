@@ -1,0 +1,7 @@
+{
+  "excludeChannels": ["#general","public"],
+  "excludeUsers": ["guest"],
+  "enableLogMasking": true,
+  "maskPatterns": ["\\\d{6}-\\\d{7}","\\\b01[0-9]-?\\d{3,4}-?\\d{4}\\b","\\\b\\d{4}\\d{4}\\d{4}\\d{4}\\b"],
+  "verifyThreshold": 0.75
+}
