@@ -31,6 +31,19 @@ Quickstart (developer)
 4. Run backtests in `scripts/backtest/run_backtest.js`.
 5. When ready for live: configure `BITHUMB_API_KEY`, `BITHUMB_API_SECRET` via env or OpenClaw auth profile and run with `--dry-run` first.
 
+Model selection (skill-level config)
+- This skill respects the global model-priority policy but exposes a machine-readable config block that automated runners can read.
+
+```json
+{
+  "model_policy": {
+    "main": "github-copilot/gpt-5-mini",
+    "codex": "openai/codex",
+    "fallback": "gpt-4.1"
+  }
+}
+```
+
 Outputs
 - Deterministic scripts for API calls and backtesting (JS/Python templates)
 - SKILL.md with clear triggers and safety notes (this file)
