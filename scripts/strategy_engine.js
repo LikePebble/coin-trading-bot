@@ -545,7 +545,7 @@ async function mainLoop() {
 
   const endTime = Date.now() + CONFIG.RUN_HOURS * 3600 * 1000;
   let summaryCounter = 0;
-  const SUMMARY_INTERVAL = 90; // every 90 polls (~15min at 10s interval)
+  const SUMMARY_INTERVAL = 360; // every 360 polls (~1 hour at 10s interval)
 
   while (Date.now() < endTime) {
     try {
