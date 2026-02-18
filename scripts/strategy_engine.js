@@ -251,7 +251,7 @@ async function getAvailableKrw() {
     const available = krwAcc ? parseFloat(krwAcc.balance) - parseFloat(krwAcc.locked || '0') : 0;
     return Math.max(0, available);
   } catch (e) {
-    log(`Failed to fetch KRW balance: ${e.message}`);
+    log(`Failed to fetch KRW balance: ${e.response?.data?.error?.message || e.message}`);
     return 0;
   }
 }
@@ -276,6 +276,15 @@ async function executeBuy(price, sizing, signal) {
   log(`Placing buy: ${fmtBtc(sizing.quantity)} @ ${fmtKrw(price)}, total ${fmtKrw(sizing.totalKrw)}, fee ${fmtKrw(feeKrw)}`);
 
   try {
+    // Verify available KRW right before placing order to avoid "insufficient funds" 400
+    const availKrw = await getAvailableKrw();
+    if (sizing.totalKrw > availKrw) {
+      const msg = `매수 중지: 가용 KRW 부족(요청 ${fmtKrw(sizing.totalKrw)} > 가능 ${fmtKrw(availKrw)})`;
+      log(msg);
+      await sendTelegram(`❌ ${msg}`);
+      return null;
+    }
+
     let result;
     if (env.dryRun) {
       result = { uuid: `DRY-${Date.now()}`, side: 'bid', ord_type: 'limit', price: String(price), state: 'wait', volume: String(sizing.quantity) };
@@ -327,6 +336,27 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
   const env = readEnv();
   const sellQty = Math.floor(position.quantity * portionPct * 1e8) / 1e8;
   if (sellQty <= 0) return null;
+
+  // Verify available BTC before placing sell
+  try {
+    const accounts = await privateRequest({
+      method: 'GET', path: '/v1/accounts', params: {},
+      env: { apiKey: process.env.BITHUMB_API_KEY, apiSecret: process.env.BITHUMB_API_SECRET },
+      timeoutMs: 10000,
+    });
+    const btcAcc = accounts.find(a => a.currency === 'BTC');
+    const availableBtc = btcAcc ? parseFloat(btcAcc.balance) - parseFloat(btcAcc.locked || '0') : 0;
+    if (sellQty > availableBtc + 1e-10) {
+      const msg = `매도 중지: 가용 BTC 부족(요청 ${fmtBtc(sellQty)} > 가능 ${fmtBtc(availableBtc)})`;
+      log(msg);
+      await sendTelegram(`❌ ${msg}`);
+      return null;
+    }
+  } catch (e) {
+    log(`Failed to fetch BTC balance for sell: ${e.response?.data?.error?.message || e.message}`);
+    await sendTelegram(`⚠️ 매도 전 잔고 조회 실패: ${e.message}`);
+    return null;
+  }
 
   const grossKrw = sellQty * price;
   const feeKrw = grossKrw * CONFIG.FEE_RATE;
