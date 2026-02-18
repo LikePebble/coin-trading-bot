@@ -29,6 +29,8 @@ async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
   if (!LIMITS.ALLOWED_SYMBOLS.includes(symbol)) throw new Error('Symbol not allowed');
   if (!['buy', 'sell'].includes(side)) throw new Error('Invalid side');
   if (!Number.isFinite(amountKRW) || amountKRW <= 0) throw new Error('Invalid amountKRW');
+  const MIN_ORDER = parseFloat(process.env.MIN_ORDER || '5000');
+  if (amountKRW < MIN_ORDER) throw new Error(`Order below exchange minimum: ${MIN_ORDER}`);
   if (amountKRW > LIMITS.MAX_ORDER) throw new Error('Order exceeds MAX_ORDER');
   const budgetImpact = side === 'buy' ? amountKRW : 0;
   if (state.spent + budgetImpact > LIMITS.TOTAL_BUDGET) throw new Error('Would exceed TOTAL_BUDGET');
