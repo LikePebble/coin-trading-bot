@@ -49,7 +49,47 @@ async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
   // log and notify
   writeLog(state);
   await sendTelegram(`Order attempted:\n${JSON.stringify(record, null, 2)}`);
+
+  // after each order, evaluate PnL & stop conditions
+  await evaluatePerformanceAndMaybeStop();
+
   return record;
+}
+
+async function estimatePortfolioKrw(){
+  // TOTAL_BUDGET - spent + sum(holdings * currentPrice)
+  const holdings = {};
+  for(const r of state.history){
+    if(r.side === 'buy') holdings[r.symbol] = (holdings[r.symbol]||0) + r.quantity;
+    if(r.side === 'sell') holdings[r.symbol] = (holdings[r.symbol]||0) - r.quantity;
+  }
+  let added = 0;
+  for(const sym of Object.keys(holdings)){
+    try{
+      const t = await fetchTicker(sym);
+      const price = parseFloat(t?.data?.closing_price || t?.data?.close || 0);
+      if(Number.isFinite(price)) added += holdings[sym]*price;
+    }catch(e){ /* ignore */ }
+  }
+  return (LIMITS.TOTAL_BUDGET - state.spent) + added;
+}
+
+async function evaluatePerformanceAndMaybeStop(){
+  const targetPct = parseFloat(process.env.TARGET_DAILY_RETURN || '0.05');
+  const stopLossPct = parseFloat(process.env.STOP_LOSS_PCT || '-0.02');
+  const start = LIMITS.TOTAL_BUDGET;
+  const est = await estimatePortfolioKrw();
+  const pct = (est - start)/start;
+  // notify
+  await sendTelegram(`Performance check: estKrw=${Math.round(est)}, pct=${(pct*100).toFixed(2)}%`);
+  if(pct >= targetPct){
+    await sendTelegram(`Daily target reached (${(pct*100).toFixed(2)}%). Pausing trading.`);
+    process.exit(0);
+  }
+  if(pct <= stopLossPct){
+    await sendTelegram(`Stop-loss triggered (${(pct*100).toFixed(2)}%). Pausing trading.`);
+    process.exit(1);
+  }
 }
 
 async function dryRunLoop(hours=6, intervalSec=60){
@@ -88,6 +128,14 @@ async function dryRunLoop(hours=6, intervalSec=60){
 }
 
 if (require.main === module){
+  // Startup safety: if LIVE_MODE requested but LIVE_TRADING_ENABLED not set, refuse to start silently.
+  if (process.env.LIVE_MODE === 'true' && process.env.LIVE_TRADING_ENABLED !== 'true'){
+    const msg = 'Refusing to start live_runner: LIVE_MODE=true requires LIVE_TRADING_ENABLED=true to actually enable trading. Set LIVE_TRADING_ENABLED=true to confirm live trading.';
+    console.error(msg);
+    sendTelegram(msg);
+    process.exit(2);
+  }
+
   const hours = parseFloat(process.env.DRY_RUN_HOURS || '6');
   dryRunLoop(hours, parseInt(process.env.DRY_RUN_INTERVAL_SEC || '60',10)).catch(err=>{
     console.error(err);
