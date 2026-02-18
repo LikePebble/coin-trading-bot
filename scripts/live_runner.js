@@ -27,13 +27,16 @@ let state = { spent:0, ordersToday:0, history:[] };
 
 async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
   if (!LIMITS.ALLOWED_SYMBOLS.includes(symbol)) throw new Error('Symbol not allowed');
+  if (!Number.isFinite(amountKRW) || amountKRW <= 0) throw new Error('Invalid amountKRW');
   if (amountKRW > LIMITS.MAX_ORDER) throw new Error('Order exceeds MAX_ORDER');
   if (state.spent + amountKRW > LIMITS.TOTAL_BUDGET) throw new Error('Would exceed TOTAL_BUDGET');
   if (state.ordersToday >= LIMITS.MAX_DAILY_ORDERS) throw new Error('Daily order limit reached');
 
   const ticker = await fetchTicker(symbol);
-  const price = parseFloat(ticker.data.closing_price || ticker.data.close || ticker.data.price || 0);
+  const price = parseFloat(ticker?.data?.closing_price || ticker?.data?.close || ticker?.data?.price || 0);
+  if (!Number.isFinite(price) || price <= 0) throw new Error('Invalid ticker price');
   const quantity = +(amountKRW / price).toFixed(8);
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Invalid calculated quantity');
 
   const res = await placeOrder({symbol, side, price, quantity});
   const record = {ts: new Date().toISOString(), symbol, side, amountKRW, price, quantity, res};
@@ -48,7 +51,14 @@ async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
 }
 
 async function dryRunLoop(hours=6, intervalSec=60){
-  const end = Date.now() + hours*3600*1000;
+  const requestedEnd = Date.now() + hours*3600*1000;
+  const hardEnd = new Date(LIMITS.END_TIME).getTime();
+  const end = Number.isFinite(hardEnd) ? Math.min(requestedEnd, hardEnd) : requestedEnd;
+
+  if (Date.now() >= end) {
+    throw new Error('Run end time already passed; refusing to start loop');
+  }
+
   await sendTelegram(`Starting dry-run live_runner for ${hours}h. Limits: ${JSON.stringify(LIMITS)}`);
   while(Date.now() < end){
     try{

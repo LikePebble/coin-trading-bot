@@ -11,8 +11,9 @@ function readEnv() {
     apiKey: process.env.BITHUMB_API_KEY,
     apiSecret: process.env.BITHUMB_API_SECRET,
     dryRun: process.env.LIVE_MODE !== 'true',
+    liveTradingEnabled: process.env.LIVE_TRADING_ENABLED === 'true',
     maxRetry: parseInt(process.env.BITHUMB_MAX_RETRY || '3', 10),
-    retryDelayMs: parseInt(process.env.BITHUMB_RETRY_DELAY_MS || '500'),
+    retryDelayMs: parseInt(process.env.BITHUMB_RETRY_DELAY_MS || '500', 10),
   };
 }
 
@@ -27,11 +28,21 @@ async function fetchTicker(symbol = 'BTC_KRW') {
 
 async function placeOrder({symbol='BTC_KRW', side='buy', price, quantity, options={}}) {
   const env = readEnv();
+
+  if (!Number.isFinite(price) || price <= 0) throw new Error('Invalid price');
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Invalid quantity');
+  if (!['buy', 'sell'].includes(side)) throw new Error('Invalid side');
+
   const meta = {symbol, side, price, quantity, dryRun: env.dryRun, ts: new Date().toISOString()};
   if (env.dryRun) {
     // simulate latency
     await new Promise(r => setTimeout(r, 200));
     return {ok:true, dry:true, orderId:`DRY-${Date.now()}`, meta};
+  }
+
+  // Live mode requires an explicit second safety switch.
+  if (!env.liveTradingEnabled) {
+    throw new Error('Live mode requested but LIVE_TRADING_ENABLED is not true');
   }
 
   // Live mode -- MUST have API credentials. We still perform minimal checks and throw if not present.
