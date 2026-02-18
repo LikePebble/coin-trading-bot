@@ -239,18 +239,26 @@ async function loadAccountPositions() {
   }
 }
 
-function getAvailableKrw() {
-  // Estimate available KRW from starting balance minus invested
-  const invested = state.positions
-    .filter(p => p.source !== 'existing')
-    .reduce((sum, p) => sum + p.entryPrice * p.quantity, 0);
-  return Math.max(0, state.startingBalanceKrw - invested - state.dailyPnlKrw * (state.dailyPnlKrw < 0 ? 1 : 0));
+async function getAvailableKrw() {
+  // Fetch actual KRW balance from exchange (not estimated)
+  try {
+    const accounts = await privateRequest({
+      method: 'GET', path: '/v1/accounts', params: {},
+      env: { apiKey: process.env.BITHUMB_API_KEY, apiSecret: process.env.BITHUMB_API_SECRET },
+      timeoutMs: 10000,
+    });
+    const krwAcc = accounts.find(a => a.currency === 'KRW');
+    const available = krwAcc ? parseFloat(krwAcc.balance) - parseFloat(krwAcc.locked || '0') : 0;
+    return Math.max(0, available);
+  } catch (e) {
+    log(`Failed to fetch KRW balance: ${e.message}`);
+    return 0;
+  }
 }
 
-function calcPositionSize(price) {
-  const available = getAvailableKrw();
+function calcPositionSize(price, availableKrw) {
   const maxByPct = state.currentBalanceKrw * CONFIG.MAX_POSITION_PCT;
-  const orderKrw = Math.min(available, maxByPct, CONFIG.MAX_ORDER_KRW);
+  const orderKrw = Math.min(availableKrw, maxByPct, CONFIG.MAX_ORDER_KRW);
   if (orderKrw < CONFIG.MIN_ORDER_KRW) return null;
   const quantity = Math.floor((orderKrw / price) * 1e8) / 1e8; // round down to 8 decimals
   const totalKrw = quantity * price;
@@ -308,8 +316,9 @@ async function executeBuy(price, sizing, signal) {
     writeState();
     return position;
   } catch (e) {
-    log(`Buy failed: ${e.message}`);
-    await sendTelegram(`❌ 매수 실패: ${e.message}`);
+    const detail = e.response?.data?.error?.message || e.response?.data || e.message;
+    log(`Buy failed: ${detail}`);
+    await sendTelegram(`❌ 매수 실패: ${detail}`);
     return null;
   }
 }
@@ -390,8 +399,9 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
     writeState();
     return trade;
   } catch (e) {
-    log(`Sell failed: ${e.message}`);
-    await sendTelegram(`❌ 매도 실패: ${e.message}`);
+    const detail = e.response?.data?.error?.message || e.response?.data || e.message;
+    log(`Sell failed: ${detail}`);
+    await sendTelegram(`❌ 매도 실패: ${detail}`);
     return null;
   }
 }
@@ -452,7 +462,8 @@ async function checkScaleIn(currentPrice, signal) {
     const changePct = (currentPrice - entryPrice) / entryPrice;
 
     if (changePct >= CONFIG.SCALE_IN_THRESHOLD && !pos.scaledIn) {
-      const sizing = calcPositionSize(currentPrice);
+      const availKrw = await getAvailableKrw();
+      const sizing = calcPositionSize(currentPrice, availKrw);
       if (!sizing) continue;
       // Scale in with half size
       const scaleSize = { quantity: Math.floor(sizing.quantity * 0.5 * 1e8) / 1e8, totalKrw: sizing.totalKrw * 0.5 };
@@ -580,11 +591,18 @@ async function mainLoop() {
 
       // 7. Execute entry if signal is strong enough
       if (signal.action === 'BUY' && !inCooldown) {
-        const sizing = calcPositionSize(currentPrice);
-        if (sizing) {
-          await executeBuy(currentPrice, sizing, signal);
+        // Prevent duplicate buys: skip if we already have an open strategy position
+        const hasOpenPos = state.positions.some(p => p.source === 'strategy' && p.quantity > 0.00000001);
+        if (hasOpenPos) {
+          // Already in a position; skip new entry (scale-in handled separately)
         } else {
-          log(`Buy signal but insufficient funds or position limit reached`);
+          const availKrw = await getAvailableKrw();
+          const sizing = calcPositionSize(currentPrice, availKrw);
+          if (sizing) {
+            await executeBuy(currentPrice, sizing, signal);
+          } else {
+            log(`Buy signal but insufficient funds (available: ${fmtKrw(availKrw)}) or position limit reached`);
+          }
         }
       }
 
