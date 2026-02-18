@@ -1,0 +1,22 @@
+## node --check
+
+## npm test
+
+> workspace@1.0.0 test
+> echo "Error: no test specified" && exit 1
+
+Error: no test specified
+
+## npm audit --omit=dev
+# npm audit report
+
+playwright  <1.55.1
+Severity: high
+Playwright downloads and installs browsers without verifying the authenticity of the SSL certificate - https://github.com/advisories/GHSA-7mvr-c777-76hp
+fix available via `npm audit fix`
+node_modules/playwright
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix
