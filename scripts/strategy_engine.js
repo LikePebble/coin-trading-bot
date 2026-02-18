@@ -347,9 +347,16 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
     const btcAcc = accounts.find(a => a.currency === 'BTC');
     const availableBtc = btcAcc ? parseFloat(btcAcc.balance) - parseFloat(btcAcc.locked || '0') : 0;
     if (sellQty > availableBtc + 1e-10) {
-      const msg = `매도 중지: 가용 BTC 부족(요청 ${fmtBtc(sellQty)} > 가능 ${fmtBtc(availableBtc)})`;
-      log(msg);
-      await sendTelegram(`❌ ${msg}`);
+      const now = Date.now();
+      // Throttle duplicate alerts per position: 60s window
+      if (!position._lastSellAlertTs || (now - position._lastSellAlertTs) > 60000) {
+        position._lastSellAlertTs = now;
+        const msg = `매도 중지: 가용 BTC 부족(요청 ${fmtBtc(sellQty)} > 가능 ${fmtBtc(availableBtc)})`;
+        log(msg);
+        await sendTelegram(`❌ ${msg}`);
+      } else {
+        log(`Suppressed duplicate sell alert for ${position.id}`);
+      }
       return null;
     }
   } catch (e) {
