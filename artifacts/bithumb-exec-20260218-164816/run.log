@@ -1,0 +1,3 @@
+[2026-02-18T07:48:16.405Z] Submitting signed order attempt 1
+[2026-02-18T07:48:16.523Z] Order submitted with orderId=C0101000002759426713. Monitoring up to 60s.
+[2026-02-18T07:49:17.526Z] Completed with status=submitted_unfilled_within_60s

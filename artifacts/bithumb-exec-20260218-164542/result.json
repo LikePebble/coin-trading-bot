@@ -1,0 +1,60 @@
+{
+  "startedAt": "2026-02-18T07:45:42.617Z",
+  "params": {
+    "market": "BTC_KRW",
+    "side": "bid",
+    "ord_type": "limit",
+    "amountKRW": 5000,
+    "limitPrice": 99912000,
+    "volume": "0.00005004"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "ts": "2026-02-18T07:45:42.618Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 401",
+        "code": "ERR_BAD_REQUEST",
+        "status": 401,
+        "data": {
+          "error": {
+            "name": "invalid_jwt"
+          }
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "ts": "2026-02-18T07:45:43.694Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 401",
+        "code": "ERR_BAD_REQUEST",
+        "status": 401,
+        "data": {
+          "error": {
+            "name": "invalid_jwt"
+          }
+        }
+      }
+    },
+    {
+      "attempt": 3,
+      "ts": "2026-02-18T07:45:45.723Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 401",
+        "code": "ERR_BAD_REQUEST",
+        "status": 401,
+        "data": {
+          "error": {
+            "name": "invalid_jwt"
+          }
+        }
+      }
+    }
+  ],
+  "status": "submit_failed",
+  "finishedAt": "2026-02-18T07:45:45.753Z"
+}

@@ -1,0 +1,9 @@
+[2026-02-18T07:45:42.618Z] Submitting signed order attempt 1
+[2026-02-18T07:45:42.693Z] Attempt 1 failed: Request failed with status code 401
+[2026-02-18T07:45:42.693Z] Backing off for 1000ms
+[2026-02-18T07:45:43.694Z] Submitting signed order attempt 2
+[2026-02-18T07:45:43.722Z] Attempt 2 failed: Request failed with status code 401
+[2026-02-18T07:45:43.722Z] Backing off for 2000ms
+[2026-02-18T07:45:45.723Z] Submitting signed order attempt 3
+[2026-02-18T07:45:45.753Z] Attempt 3 failed: Request failed with status code 401
+[2026-02-18T07:45:45.753Z] Order submission failed after retries
