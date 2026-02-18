@@ -487,31 +487,19 @@ async function checkDailyRisk() {
   const pnlPct = state.startingBalanceKrw > 0 ? state.dailyPnlKrw / state.startingBalanceKrw : 0;
   state.dailyPnlPct = pnlPct;
 
-  // Daily target
+  // Daily target — log only, do not stop
   if (pnlPct >= CONFIG.DAILY_TARGET_PCT) {
-    const msg = `🎯 일일 목표 달성! (${fmtPct(pnlPct)})\n수익: ${fmtKrw(state.dailyPnlKrw)}\n거래 자동 중단합니다.`;
-    await sendTelegram(msg);
-    log(msg);
-    writeState();
-    process.exit(0);
+    await sendTelegram(`🎯 일일 목표 도달! (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`);
   }
 
-  // Daily stop-loss
+  // Daily stop-loss — log only, do not stop
   if (pnlPct <= CONFIG.DAILY_STOP_LOSS_PCT) {
-    const msg = `🛑 일일 손절 도달 (${fmtPct(pnlPct)})\n손실: ${fmtKrw(state.dailyPnlKrw)}\n거래 자동 중단합니다.`;
-    await sendTelegram(msg);
-    log(msg);
-    writeState();
-    process.exit(1);
+    await sendTelegram(`⚠️ 일일 손절 수준 도달 (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`);
   }
 
-  // Consecutive losses
+  // Consecutive losses — log only, do not stop
   if (state.consecutiveLosses >= CONFIG.MAX_CONSECUTIVE_LOSSES) {
-    const msg = `⚠️ 연속 ${state.consecutiveLosses}회 손실 — 거래 자동 중단합니다.`;
-    await sendTelegram(msg);
-    log(msg);
-    writeState();
-    process.exit(1);
+    await sendTelegram(`⚠️ 연속 ${state.consecutiveLosses}회 손실 — 거래 계속 진행합니다.`);
   }
 }
 
