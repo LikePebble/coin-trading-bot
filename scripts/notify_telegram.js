@@ -30,12 +30,49 @@ if (!BOT_TOKEN || !CHAT_ID) {
   console.warn('Telegram not fully configured: set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env or configure OpenClaw channels.telegram to enable notifications.');
 }
 
+function safeTruncate(s, n=1500){
+  if(s.length<=n) return s;
+  return s.slice(0,n-200)+"\n... (truncated) ...\n"+s.slice(-200);
+}
+
+function formatOrderAttempt(msg){
+  // msg starts with 'Order attempted:' followed by JSON
+  const parts = msg.split('\n',1);
+  const jsonPart = msg.replace(/^Order attempted:\n?/,'');
+  try{
+    const obj = JSON.parse(jsonPart);
+    const r = obj.res || {};
+    const lines = [];
+    lines.push(`Order ${r.orderId || ''} ${obj.side.toUpperCase()} ${obj.quantity}@${obj.price}`);
+    lines.push(`Amount(KRW): ${obj.amountKRW} | BudgetImpact: ${obj.budgetImpact}`);
+    lines.push(`Result: ${r.ok? 'OK': 'FAIL'} ${r.dry? '(DRY-RUN)':''}`);
+    lines.push(`Time: ${obj.ts}`);
+    return lines.join('\n');
+  }catch(e){
+    return safeTruncate(msg);
+  }
+}
+
+function formatPerformance(msg){
+  // expects messages like: Performance check: estKrw=..., pct=...%
+  return msg;
+}
+
 async function sendTelegram(text) {
   if (!BOT_TOKEN || !CHAT_ID) return;
-  try {
+  let out = text;
+  try{
+    if(typeof text === 'string' && text.startsWith('Order attempted:')){
+      out = formatOrderAttempt(text);
+    } else if(typeof text === 'string' && text.startsWith('Performance check:')){
+      out = formatPerformance(text);
+    } else if(typeof text !== 'string'){
+      out = JSON.stringify(text, null, 2);
+    }
+    out = safeTruncate(out, 1800);
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    await axios.post(url, { chat_id: CHAT_ID, text });
-  } catch (err) {
+    await axios.post(url, { chat_id: CHAT_ID, text: out });
+  }catch (err) {
     console.error('Telegram send error', err.message);
   }
 }
