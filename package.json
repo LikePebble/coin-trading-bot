@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "node -e \"console.log('lint: no static lint config; skipped')\"",
+    "test": "node scripts/safety_test.js",
+    "test:dry": "LIVE_MODE=false node scripts/safety_test.js"
   },
   "keywords": [],
   "author": "",
