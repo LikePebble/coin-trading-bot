@@ -35,16 +35,22 @@ function safeTruncate(s, n=1500){
   return s.slice(0,n-200)+"\n... (truncated) ...\n"+s.slice(-200);
 }
 
+function fmtNum(n){
+  if(typeof n==='number') return n.toLocaleString();
+  const v = Number(n);
+  if(Number.isFinite(v)) return v.toLocaleString();
+  return String(n);
+}
+
 function formatOrderAttempt(msg){
   // msg starts with 'Order attempted:' followed by JSON
-  const parts = msg.split('\n',1);
   const jsonPart = msg.replace(/^Order attempted:\n?/,'');
   try{
     const obj = JSON.parse(jsonPart);
     const r = obj.res || {};
     const lines = [];
-    lines.push(`Order ${r.orderId || ''} ${obj.side.toUpperCase()} ${obj.quantity}@${obj.price}`);
-    lines.push(`Amount(KRW): ${obj.amountKRW} | BudgetImpact: ${obj.budgetImpact}`);
+    lines.push(`Order ${r.orderId || ''}: ${obj.side.toUpperCase()} ${fmtNum(obj.quantity)} @ ₩${fmtNum(obj.price)}`);
+    lines.push(`Amount (KRW): ₩${fmtNum(obj.amountKRW)} | Budget impact: ₩${fmtNum(obj.budgetImpact)}`);
     lines.push(`Result: ${r.ok? 'OK': 'FAIL'} ${r.dry? '(DRY-RUN)':''}`);
     lines.push(`Time: ${obj.ts}`);
     return lines.join('\n');
