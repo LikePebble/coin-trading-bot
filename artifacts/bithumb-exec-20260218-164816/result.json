@@ -1,0 +1,479 @@
+{
+  "startedAt": "2026-02-18T07:48:16.405Z",
+  "params": {
+    "market": "BTC_KRW",
+    "side": "bid",
+    "ord_type": "limit",
+    "amountKRW": 5000,
+    "limitPrice": 99912000,
+    "rawVolume": 0.00005004403875410361,
+    "volume": "0.00005005",
+    "estimatedTotalKRW": 5000.5956
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "ts": "2026-02-18T07:48:16.405Z",
+      "success": true,
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0
+      }
+    }
+  ],
+  "orderId": "C0101000002759426713",
+  "submitResponse": {
+    "uuid": "C0101000002759426713",
+    "side": "bid",
+    "ord_type": "limit",
+    "price": "99912000",
+    "state": "wait",
+    "market": "KRW-BTC",
+    "created_at": "2026-02-18T16:48:16+09:00",
+    "volume": "0.00005005",
+    "remaining_volume": "0.00005005",
+    "reserved_fee": "12.501489",
+    "remaining_fee": "12.501489",
+    "paid_fee": "0",
+    "locked": "5014.097089",
+    "executed_volume": "0",
+    "trades_count": 0
+  },
+  "monitor": [
+    {
+      "ts": "2026-02-18T07:48:16.568Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:19.618Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:22.665Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:25.716Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:28.762Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:31.820Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:34.870Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:37.925Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:40.974Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:44.035Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:47.087Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:50.132Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:53.177Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:56.220Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:48:59.273Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:49:02.317Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:49:05.368Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:49:08.414Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:49:11.462Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    },
+    {
+      "ts": "2026-02-18T07:49:14.524Z",
+      "response": {
+        "uuid": "C0101000002759426713",
+        "side": "bid",
+        "ord_type": "limit",
+        "price": "99912000",
+        "state": "wait",
+        "market": "KRW-BTC",
+        "created_at": "2026-02-18T16:48:16+09:00",
+        "volume": "0.00005005",
+        "remaining_volume": "0.00005005",
+        "reserved_fee": "12.501489",
+        "remaining_fee": "12.501489",
+        "paid_fee": "0",
+        "locked": "5014.097089",
+        "executed_volume": "0",
+        "trades_count": 0,
+        "trades": []
+      }
+    }
+  ],
+  "status": "submitted_unfilled_within_60s",
+  "finishedAt": "2026-02-18T07:49:17.525Z"
+}

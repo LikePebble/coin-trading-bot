@@ -1,0 +1,63 @@
+{
+  "startedAt": "2026-02-18T07:47:41.332Z",
+  "params": {
+    "market": "BTC_KRW",
+    "side": "bid",
+    "ord_type": "limit",
+    "amountKRW": 5000,
+    "limitPrice": 99912000,
+    "volume": "0.00005004"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "ts": "2026-02-18T07:47:41.333Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 400",
+        "code": "ERR_BAD_REQUEST",
+        "status": 400,
+        "data": {
+          "error": {
+            "name": "under_min_total_bid",
+            "message": "최소주문금액 이상으로 주문해주세요 : 5000"
+          }
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "ts": "2026-02-18T07:47:42.418Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 400",
+        "code": "ERR_BAD_REQUEST",
+        "status": 400,
+        "data": {
+          "error": {
+            "name": "under_min_total_bid",
+            "message": "최소주문금액 이상으로 주문해주세요 : 5000"
+          }
+        }
+      }
+    },
+    {
+      "attempt": 3,
+      "ts": "2026-02-18T07:47:44.460Z",
+      "success": false,
+      "error": {
+        "message": "Request failed with status code 400",
+        "code": "ERR_BAD_REQUEST",
+        "status": 400,
+        "data": {
+          "error": {
+            "name": "under_min_total_bid",
+            "message": "최소주문금액 이상으로 주문해주세요 : 5000"
+          }
+        }
+      }
+    }
+  ],
+  "status": "submit_failed",
+  "finishedAt": "2026-02-18T07:47:44.506Z"
+}
