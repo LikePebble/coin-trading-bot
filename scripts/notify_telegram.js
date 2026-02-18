@@ -54,7 +54,15 @@ function formatOrderAttempt(msg){
 }
 
 function formatPerformance(msg){
-  // expects messages like: Performance check: estKrw=..., pct=...%
+  // parse messages like: Performance check: estKrw=12345, pct=1.23%
+  try{
+    const m = msg.match(/estKrw=(\d+),?\s*pct=([\-\d\.]+)/i);
+    if(m){
+      const est = Number(m[1]);
+      const pct = Number(m[2]);
+      return `Performance check:\nEstimated balance: ₩${est.toLocaleString()}\nDaily P&L: ${pct.toFixed(2)}%`;
+    }
+  }catch(e){}
   return msg;
 }
 
