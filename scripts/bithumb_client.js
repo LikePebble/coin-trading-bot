@@ -33,6 +33,12 @@ async function placeOrder({symbol='BTC_KRW', side='buy', price, quantity, option
   if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Invalid quantity');
   if (!['buy', 'sell'].includes(side)) throw new Error('Invalid side');
 
+  // Extra safety: if LIVE_MODE is requested but LIVE_TRADING_ENABLED is NOT true,
+  // we must block the live trading path unconditionally.
+  if (process.env.LIVE_MODE === 'true' && process.env.LIVE_TRADING_ENABLED !== 'true') {
+    throw new Error('Live trading blocked by safety guard (LIVE_TRADING_ENABLED not set)');
+  }
+
   const meta = {symbol, side, price, quantity, dryRun: env.dryRun, ts: new Date().toISOString()};
   if (env.dryRun) {
     // simulate latency
