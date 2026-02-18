@@ -13,7 +13,7 @@ async function sendTelegram(text) {
   if (!BOT_TOKEN || !CHAT_ID) return;
   try {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    await axios.post(url, { chat_id: CHAT_ID, text, parse_mode: 'Markdown' });
+    await axios.post(url, { chat_id: CHAT_ID, text });
   } catch (err) {
     console.error('Telegram send error', err.message);
   }

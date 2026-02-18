@@ -15,5 +15,8 @@
     "axios": "^1.13.5",
     "dotenv": "^17.3.1",
     "playwright": "^1.37.0"
+  },
+  "devDependencies": {
+    "@openai/codex": "^0.103.0"
   }
 }

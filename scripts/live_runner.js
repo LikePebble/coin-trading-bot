@@ -27,9 +27,11 @@ let state = { spent:0, ordersToday:0, history:[] };
 
 async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
   if (!LIMITS.ALLOWED_SYMBOLS.includes(symbol)) throw new Error('Symbol not allowed');
+  if (!['buy', 'sell'].includes(side)) throw new Error('Invalid side');
   if (!Number.isFinite(amountKRW) || amountKRW <= 0) throw new Error('Invalid amountKRW');
   if (amountKRW > LIMITS.MAX_ORDER) throw new Error('Order exceeds MAX_ORDER');
-  if (state.spent + amountKRW > LIMITS.TOTAL_BUDGET) throw new Error('Would exceed TOTAL_BUDGET');
+  const budgetImpact = side === 'buy' ? amountKRW : 0;
+  if (state.spent + budgetImpact > LIMITS.TOTAL_BUDGET) throw new Error('Would exceed TOTAL_BUDGET');
   if (state.ordersToday >= LIMITS.MAX_DAILY_ORDERS) throw new Error('Daily order limit reached');
 
   const ticker = await fetchTicker(symbol);
@@ -39,8 +41,8 @@ async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
   if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Invalid calculated quantity');
 
   const res = await placeOrder({symbol, side, price, quantity});
-  const record = {ts: new Date().toISOString(), symbol, side, amountKRW, price, quantity, res};
-  state.spent += amountKRW;
+  const record = {ts: new Date().toISOString(), symbol, side, amountKRW, price, quantity, budgetImpact, res};
+  state.spent += budgetImpact;
   state.ordersToday += 1;
   state.history.push(record);
 
