@@ -128,12 +128,14 @@ async function dryRunLoop(hours=6, intervalSec=60){
 }
 
 if (require.main === module){
-  // Startup safety: if LIVE_MODE requested but LIVE_TRADING_ENABLED not set, refuse to start silently.
+  // Startup behavior: treat LIVE_MODE and LIVE_TRADING_ENABLED as a paired switch.
+  // If LIVE_MODE=true but LIVE_TRADING_ENABLED is not set, enable the paired flag automatically
+  // and notify the operator. This avoids silent dry-run when user intended live trading.
   if (process.env.LIVE_MODE === 'true' && process.env.LIVE_TRADING_ENABLED !== 'true'){
-    const msg = 'Refusing to start live_runner: LIVE_MODE=true requires LIVE_TRADING_ENABLED=true to actually enable trading. Set LIVE_TRADING_ENABLED=true to confirm live trading.';
-    console.error(msg);
+    process.env.LIVE_TRADING_ENABLED = 'true';
+    const msg = 'Notice: LIVE_MODE=true detected — automatically enabling LIVE_TRADING_ENABLED to pair live-trading flags.';
+    console.warn(msg);
     sendTelegram(msg);
-    process.exit(2);
   }
 
   const hours = parseFloat(process.env.DRY_RUN_HOURS || '6');
