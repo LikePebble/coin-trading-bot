@@ -76,7 +76,8 @@ async function fetchTicker(symbol = 'BTC_KRW') {
 
 async function privateRequest({ method = 'GET', path, params = {}, env, timeoutMs = 10000 }) {
   const sanitizedMethod = method.toUpperCase();
-  const isGet = sanitizedMethod === 'GET';
+  // Treat DELETE as a query-style request for signing and transmission (Bithumb expects query_hash over URL params)
+  const isQueryStyle = sanitizedMethod === 'GET' || sanitizedMethod === 'DELETE';
   const { token } = signBithumbJwt({
     apiKey: env.apiKey,
     apiSecret: env.apiSecret,
@@ -94,7 +95,8 @@ async function privateRequest({ method = 'GET', path, params = {}, env, timeoutM
     },
   };
 
-  if (isGet) {
+  if (isQueryStyle) {
+    // send params in URL query string so query_hash matches
     config.params = params;
   } else {
     config.data = params;
