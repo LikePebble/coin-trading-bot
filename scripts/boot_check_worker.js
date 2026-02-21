@@ -3,6 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { ackRequest } = require('./ack');
 const OPENCLAW_HOME = path.join(__dirname, '..');
 const POLL_INTERVAL = parseInt(process.env.BOOTCHECK_POLL_MS || '5000', 10);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -40,6 +41,10 @@ async function handle(){
         const from = u.message.from && u.message.from.username;
         // look for '허용' or '시작' in reply
         if(/\b(허용|시작|start|yes)\b/i.test(msg)){
+          // ACK before executing
+          try{
+            await ackRequest(msg);
+          }catch(e){}
           // start strategy via launchctl
           try{
             execSync(`launchctl kickstart -k gui/${process.getuid()}/com.openclaw.strategy`);
@@ -48,6 +53,9 @@ async function handle(){
             await sendMessage('전략 엔진 시작 실패: '+ String(e.message).slice(0,200));
           }
         } else if(/\b(중지|정지|stop|no|아니)\b/i.test(msg)){
+          try{
+            await ackRequest(msg);
+          }catch(e){}
           try{ execSync(`launchctl stop gui/${process.getuid()}/com.openclaw.strategy`); await sendMessage('전략 엔진 중지 명령을 실행했습니다.'); }catch(e){ await sendMessage('전략 엔진 중지 실패: '+String(e.message).slice(0,200)); }
         }
       }catch(e){ console.error('handle update error', e.message); }
