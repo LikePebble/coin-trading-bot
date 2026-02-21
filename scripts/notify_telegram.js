@@ -68,6 +68,12 @@ function safeWriteFallback(entry) {
 }
 
 function enqueueTelegram(text, opts = {}) {
+  // Drop noisy periodic HEARTBEAT messages unless explicitly forced
+  try{
+    if(typeof text === 'string' && text.includes('HEARTBEAT') && !opts.force){
+      return Promise.resolve({ok:false, reason:'dropped_heartbeat'});
+    }
+  }catch(e){}
   if (!BOT_TOKEN || !CHAT_ID) return Promise.resolve({ok:false, reason:'no-telegram-config'});
   if (queue.length >= CFG.MAX_QUEUE) {
     const entry = { ts: Date.now(), text, opts, reason: 'queue_full' };
