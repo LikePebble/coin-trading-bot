@@ -38,10 +38,28 @@ const CFG = {
   BATCH_WINDOW_MS: parseInt(process.env.TELEGRAM_BATCH_WINDOW_MS || '800', 10),
 };
 
+const QUEUE_FILE = path.join(LOG_DIR, 'telegram_queue.jsonl');
 let queue = [];
 let cbFailures = 0;
 let circuitOpenUntil = 0;
 let workerRunning = false;
+
+function loadQueueFromDisk(){
+  try{
+    if (!fs.existsSync(QUEUE_FILE)) return;
+    const lines = fs.readFileSync(QUEUE_FILE,'utf8').split('\n').filter(Boolean);
+    for(const l of lines){
+      try{ const it=JSON.parse(l); queue.push(it); }catch(e){}
+    }
+  }catch(e){ console.error('failed loadQueueFromDisk', e.message); }
+}
+
+function persistQueueToDisk(){
+  try{
+    const out = queue.map(it=>JSON.stringify(it)).join('\n') + (queue.length? '\n':'');
+    fs.writeFileSync(QUEUE_FILE, out, 'utf8');
+  }catch(e){ console.error('failed persistQueueToDisk', e.message); }
+}
 
 function safeWriteFallback(entry) {
   try {
@@ -65,6 +83,7 @@ function enqueueTelegram(text, opts = {}) {
     createdAt: Date.now(),
   };
   queue.push(item);
+  persistQueueToDisk();
   return Promise.resolve({ok:true, enqueued:true, id: item.id});
 }
 
@@ -133,6 +152,7 @@ async function flushTelegramQueue(timeoutMs=5000){
 }
 
 // Start worker (detached)
+loadQueueFromDisk();
 workerLoop().catch(e=>console.error('workerLoop crashed', e));
 
 // Exported API
