@@ -32,7 +32,7 @@ async function ackRequest(text, opts={}){
   const short = (text||'').split('\n')[0].slice(0,120);
   const msg = `요청 접수: id=${id}\n요약: ${short}\n처리: 약 ${etaMin}분 이내 응답 예정`;
   // fire-and-forget enqueue; return meta immediately
-  try{ await sendTelegram(msg); }catch(e){ /* notify is non-blocking but keep try */ }
+  try{ await sendTelegram(msg, { dedupeKey: `ack:${id}` }); }catch(e){ /* notify is non-blocking but keep try */ }
   return { id, etaMin };
 }
 

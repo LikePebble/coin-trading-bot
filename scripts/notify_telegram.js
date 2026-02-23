@@ -7,6 +7,7 @@ const axios = require('axios');
 const LOG_DIR = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const FALLBACK_LOG = path.join(LOG_DIR, 'telegram_fallback.log');
+const DIAG_LOG = path.join(LOG_DIR, 'notify_diagnostics.jsonl');
 
 const openclawCfgPath = path.join(process.env.HOME || '/', '.openclaw', 'openclaw.json');
 function loadOpenClawTelegramConfig() {
@@ -44,13 +45,35 @@ let cbFailures = 0;
 let circuitOpenUntil = 0;
 let workerRunning = false;
 
+// Deduplication: remember recently-sent texts to avoid duplicate Telegram notifications
+const recentSent = new Map(); // text -> lastTs
+const DEDUP_WINDOW_MS = 60 * 1000; // 60s
+
 function loadQueueFromDisk(){
   try{
     if (!fs.existsSync(QUEUE_FILE)) return;
     const lines = fs.readFileSync(QUEUE_FILE,'utf8').split('\n').filter(Boolean);
+    const items = [];
     for(const l of lines){
-      try{ const it=JSON.parse(l); queue.push(it); }catch(e){}
+      try{ const it=JSON.parse(l); items.push(it); }catch(e){}
     }
+    // Prune exact duplicate items older than 5 minutes (keep the most recent)
+    const byHash = new Map(); // key = text|opts.dedupeKey
+    const cutoff = Date.now() - 5*60*1000;
+    for (const it of items) {
+      const key = (it.opts && it.opts.dedupeKey) ? `DK:${it.opts.dedupeKey}` : `T:${it.text}`;
+      const prev = byHash.get(key);
+      if (!prev) {
+        byHash.set(key, it);
+      } else {
+        // keep the newest one
+        if ((it.createdAt||0) > (prev.createdAt||0)) byHash.set(key, it);
+      }
+    }
+    // Filter out entries that are duplicates and older than cutoff
+    queue = Array.from(byHash.values()).filter(it => (it.createdAt||0) >= cutoff || true);
+    // persist pruned queue
+    persistQueueToDisk();
   }catch(e){ console.error('failed loadQueueFromDisk', e.message); }
 }
 
@@ -67,6 +90,12 @@ function safeWriteFallback(entry) {
   } catch (e) { console.error('fallback write failed', e.message); }
 }
 
+function appendDiag(entry) {
+  try{
+    fs.appendFileSync(DIAG_LOG, JSON.stringify(entry) + '\n');
+  }catch(e){ /* best-effort */ }
+}
+
 function enqueueTelegram(text, opts = {}) {
   // Drop noisy periodic HEARTBEAT messages unless explicitly forced
   try{
@@ -75,6 +104,41 @@ function enqueueTelegram(text, opts = {}) {
     }
   }catch(e){}
   if (!BOT_TOKEN || !CHAT_ID) return Promise.resolve({ok:false, reason:'no-telegram-config'});
+
+  const now = Date.now();
+  const tstr = String(text || '');
+
+  // Capture caller stack for diagnostics (best-effort)
+  let callerStack = null;
+  try{
+    const err = new Error();
+    Error.captureStackTrace(err, enqueueTelegram);
+    callerStack = (err.stack || '').split('\n').slice(1).map(s=>s.trim()).join(' | ');
+  }catch(e){}
+
+  // record diagnostic entry for this enqueue attempt
+  try{
+    appendDiag({ts: now, text: tstr.slice(0,2000), opts: { hasDedupeKey: !!(opts && opts.dedupeKey), force: !!opts.force }, callerStack});
+  }catch(e){}
+
+  // Deduplicate recent sends in-memory
+  try{
+    // prefer per-caller dedupeKey if provided
+    const dedupeKey = opts && opts.dedupeKey ? `DK:${opts.dedupeKey}` : `T:${tstr}`;
+    const last = recentSent.get(dedupeKey);
+    if (last && (now - last) < DEDUP_WINDOW_MS && !opts.force) {
+      return Promise.resolve({ok:false, reason:'duplicate_recent'});
+    }
+  }catch(e){}
+
+  // Also check queue for pending identical items (consider dedupeKey first)
+  const exists = queue.find(q => {
+    const qKey = (q.opts && q.opts.dedupeKey) ? `DK:${q.opts.dedupeKey}` : `T:${q.text}`;
+    const thisKey = (opts && opts.dedupeKey) ? `DK:${opts.dedupeKey}` : `T:${tstr}`;
+    return qKey === thisKey;
+  });
+  if (exists && !opts.force) return Promise.resolve({ok:false, reason:'already_queued'});
+
   if (queue.length >= CFG.MAX_QUEUE) {
     const entry = { ts: Date.now(), text, opts, reason: 'queue_full' };
     safeWriteFallback(entry);
@@ -82,7 +146,7 @@ function enqueueTelegram(text, opts = {}) {
   }
   const item = {
     id: Date.now() + '-' + Math.random().toString(36).slice(2,8),
-    text: String(text),
+    text: tstr,
     opts: opts || {},
     retries: 0,
     nextTry: Date.now(),
@@ -90,6 +154,13 @@ function enqueueTelegram(text, opts = {}) {
   };
   queue.push(item);
   persistQueueToDisk();
+  // record recentSent timestamp to prevent immediate duplicates
+  try{ 
+    const key = (opts && opts.dedupeKey) ? `DK:${opts.dedupeKey}` : `T:${tstr}`;
+    recentSent.set(key, now);
+  }catch(e){}
+  // prune recentSent map
+  for (const [k,v] of recentSent.entries()) if (now - v > DEDUP_WINDOW_MS*5) recentSent.delete(k);
   return Promise.resolve({ok:true, enqueued:true, id: item.id});
 }
 

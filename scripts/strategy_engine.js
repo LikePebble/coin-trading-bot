@@ -9,7 +9,7 @@
 
 require('dotenv').config();
 const { fetchTicker, executeSignedOrder, getOrderByUuid, privateRequest, readEnv, normalizeMarketSymbol } = require('./bithumb_client');
-const { sendTelegram } = require('./notify_telegram');
+const { sendTelegram, flushTelegramQueue } = require('./notify_telegram');
 const fs = require('fs');
 const path = require('path');
 
@@ -88,6 +88,27 @@ function writeState() {
 function fmtKrw(n) { return '₩' + Math.round(n).toLocaleString(); }
 function fmtPct(n) { return (n * 100).toFixed(2) + '%'; }
 function fmtBtc(n) { return n.toFixed(8); }
+// notify with short-term dedupe to avoid rapid duplicate Telegram messages
+const _recentNotifies = new Map(); // msg -> ts
+const NOTIFY_DEDUPE_MS = 60 * 1000;
+function notify(msg, options = {}) {
+  try {
+    const now = Date.now();
+    const key = String(msg || '');
+    const last = _recentNotifies.get(key);
+    if (last && (now - last) < NOTIFY_DEDUPE_MS && !options.force) {
+      log('notify suppressed duplicate: ' + (key.length>80? key.slice(0,80)+'...': key));
+      return;
+    }
+    _recentNotifies.set(key, now);
+    // prune
+    for (const [k,v] of _recentNotifies.entries()) if (now - v > NOTIFY_DEDUPE_MS*5) _recentNotifies.delete(k);
+    sendTelegram(msg, options).catch(err => log(`Notify queue error: ${err.message}`));
+  } catch (e) {
+    log('notify exception: ' + (e && e.message));
+  }
+}
+
 
 // ─── Technical Indicators ────────────────────────────────────
 function calcEMA(data, period) {
@@ -279,9 +300,7 @@ async function executeBuy(price, sizing, signal) {
     // Verify available KRW right before placing order to avoid "insufficient funds" 400
     const availKrw = await getAvailableKrw();
     if (sizing.totalKrw > availKrw) {
-      const msg = `매수 중지: 가용 KRW 부족(요청 ${fmtKrw(sizing.totalKrw)} > 가능 ${fmtKrw(availKrw)})`;
-      log(msg);
-      await sendTelegram(`❌ ${msg}`);
+      log(`매수 스킵: 가용 KRW 부족(요청 ${fmtKrw(sizing.totalKrw)} > 가능 ${fmtKrw(availKrw)}) — 알림 생략`);
       return null;
     }
 
@@ -321,13 +340,19 @@ async function executeBuy(price, sizing, signal) {
       `금액: ${fmtKrw(sizing.totalKrw)} (수수료 ${fmtKrw(feeKrw)})\n` +
       `신호: ${signal.reason}\n` +
       `주문ID: ${result.uuid || 'N/A'}`;
-    await sendTelegram(msg);
+    notify(msg);
     writeState();
     return position;
   } catch (e) {
     const detail = e.response?.data?.error?.message || e.response?.data || e.message;
-    log(`Buy failed: ${detail}`);
-    await sendTelegram(`❌ 매수 실패: ${detail}`);
+    const detailStr = typeof detail === 'object' ? JSON.stringify(detail) : String(detail);
+    // Suppress noisy "insufficient funds" notifications — log only
+    if (/부족|insufficient/i.test(detailStr)) {
+      log(`Buy failed (suppressed): ${detailStr}`);
+    } else {
+      log(`Buy failed: ${detailStr}`);
+      notify(`❌ 매수 실패: ${detailStr}`, { dedupeKey: `buy_fail:${detailStr.slice(0,60)}` });
+    }
     return null;
   }
 }
@@ -353,7 +378,7 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
         position._lastSellAlertTs = now;
         const msg = `매도 중지: 가용 BTC 부족(요청 ${fmtBtc(sellQty)} > 가능 ${fmtBtc(availableBtc)})`;
         log(msg);
-        await sendTelegram(`❌ ${msg}`);
+        notify(`❌ ${msg}`);
       } else {
         log(`Suppressed duplicate sell alert for ${position.id}`);
       }
@@ -361,7 +386,7 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
     }
   } catch (e) {
     log(`Failed to fetch BTC balance for sell: ${e.response?.data?.error?.message || e.message}`);
-    await sendTelegram(`⚠️ 매도 전 잔고 조회 실패: ${e.message}`);
+    notify(`⚠️ 매도 전 잔고 조회 실패: ${e.message}`);
     return null;
   }
 
@@ -432,13 +457,13 @@ async function executeSell(position, price, reason, portionPct = 1.0) {
       `손익: ${fmtKrw(pnlKrw)} (${fmtPct(pnlPct)})\n` +
       `수수료: ${fmtKrw(feeKrw)}\n` +
       `주문ID: ${result.uuid || 'N/A'}`;
-    await sendTelegram(msg);
+    notify(msg);
     writeState();
     return trade;
   } catch (e) {
     const detail = e.response?.data?.error?.message || e.response?.data || e.message;
     log(`Sell failed: ${detail}`);
-    await sendTelegram(`❌ 매도 실패: ${detail}`);
+    notify(`❌ 매도 실패: ${detail}`);
     return null;
   }
 }
@@ -526,17 +551,17 @@ async function checkDailyRisk() {
 
   // Daily target — log only, do not stop
   if (pnlPct >= CONFIG.DAILY_TARGET_PCT) {
-    await sendTelegram(`🎯 일일 목표 도달! (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`);
+    notify(`🎯 일일 목표 도달! (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`, { dedupeKey: 'daily_target' });
   }
 
   // Daily stop-loss — log only, do not stop
   if (pnlPct <= CONFIG.DAILY_STOP_LOSS_PCT) {
-    await sendTelegram(`⚠️ 일일 손절 수준 도달 (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`);
+    notify(`⚠️ 일일 손절 수준 도달 (${fmtPct(pnlPct)}) — 거래 계속 진행합니다.`, { dedupeKey: 'daily_stoploss' });
   }
 
   // Consecutive losses — log only, do not stop
   if (state.consecutiveLosses >= CONFIG.MAX_CONSECUTIVE_LOSSES) {
-    await sendTelegram(`⚠️ 연속 ${state.consecutiveLosses}회 손실 — 거래 계속 진행합니다.`);
+    notify(`⚠️ 연속 ${state.consecutiveLosses}회 손실 — 거래 계속 진행합니다.`, { dedupeKey: `consec_losses:${state.consecutiveLosses}` });
   }
 }
 
@@ -558,7 +583,7 @@ async function sendPeriodicSummary() {
     `오픈 포지션: ${openPositions.length}개\n` +
     `총 주문: ${state.orderCount}건\n` +
     `연속 손실: ${state.consecutiveLosses}회`;
-  await sendTelegram(msg);
+  notify(msg, { dedupeKey: `periodic:${elapsed}` });
 }
 
 // ─── Main Loop ───────────────────────────────────────────────
@@ -574,11 +599,11 @@ async function mainLoop() {
 
   const env = readEnv();
   const mode = env.dryRun ? 'DRY-RUN' : 'LIVE';
-  await sendTelegram(`🚀 전략 엔진 시작 (${mode})\n수수료: ${CONFIG.FEE_RATE * 100}%\n익절: ${fmtPct(CONFIG.TAKE_PROFIT_PCT)}\n손절: ${fmtPct(CONFIG.STOP_LOSS_PCT)}\n트레일링: ${fmtPct(CONFIG.TRAILING_STOP_PCT)}\n일일 목표: ${fmtPct(CONFIG.DAILY_TARGET_PCT)}\n일일 손절: ${fmtPct(CONFIG.DAILY_STOP_LOSS_PCT)}`);
+  notify(`🚀 전략 엔진 시작 (${mode})\n수수료: ${CONFIG.FEE_RATE * 100}%\n익절: ${fmtPct(CONFIG.TAKE_PROFIT_PCT)}\n손절: ${fmtPct(CONFIG.STOP_LOSS_PCT)}\n트레일링: ${fmtPct(CONFIG.TRAILING_STOP_PCT)}\n일일 목표: ${fmtPct(CONFIG.DAILY_TARGET_PCT)}\n일일 손절: ${fmtPct(CONFIG.DAILY_STOP_LOSS_PCT)}`, { dedupeKey: 'strategy_start' });
 
   // Load existing positions from account
   await loadAccountPositions();
-  await sendTelegram(`💰 시작 자산: ${fmtKrw(state.startingBalanceKrw)}\n보유 포지션: ${state.positions.length}개`);
+  notify(`💰 시작 자산: ${fmtKrw(state.startingBalanceKrw)}\n보유 포지션: ${state.positions.length}개`, { dedupeKey: 'strategy_start_assets' });
 
   const endTime = Date.now() + CONFIG.RUN_HOURS * 3600 * 1000;
   let summaryCounter = 0;
@@ -648,7 +673,7 @@ async function mainLoop() {
 
     } catch (err) {
       log(`Loop error: ${err.message}`);
-      await sendTelegram(`⚠️ 루프 오류: ${err.message}`);
+      notify(`⚠️ 루프 오류: ${err.message}`);
     }
 
     await sleep(CONFIG.POLL_INTERVAL_SEC * 1000);
@@ -656,8 +681,9 @@ async function mainLoop() {
 
   // Session ended
   await sendPeriodicSummary();
-  await sendTelegram('⏰ 전략 엔진 세션 종료 (시간 만료)');
+  notify('⏰ 전략 엔진 세션 종료 (시간 만료)');
   writeState();
+  await flushTelegramQueue(5000);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -666,7 +692,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 if (require.main === module) {
   mainLoop().catch(async (err) => {
     console.error('Fatal:', err);
-    await sendTelegram(`💀 전략 엔진 치명적 오류: ${err.message}`);
+    notify(`💀 전략 엔진 치명적 오류: ${err.message}`, { critical: true });
+    await flushTelegramQueue(5000);
     process.exit(1);
   });
 }

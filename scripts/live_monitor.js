@@ -31,7 +31,7 @@ function processChunk(chunk, file){
     for(const k of keywords){
       if(l.includes(k)){
         const msg = `ALERT (${path.basename(file)}): ${l}`;
-        try{ nt.sendTelegram(msg); }catch(e){ console.error('notify enqueue failed', e.message); }
+        try{ nt.sendTelegram(msg, { dedupeKey: `alert:${path.basename(file)}:${l.slice(0,80)}` }); }catch(e){ console.error('notify enqueue failed', e.message); }
         break;
       }
     }

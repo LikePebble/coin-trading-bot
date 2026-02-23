@@ -50,7 +50,7 @@ async function runOnce({symbol='BTC_KRW', side='buy', amountKRW=10000}){
 
   // log and notify
   writeLog(state);
-  await sendTelegram(`Order attempted:\n${JSON.stringify(record, null, 2)}`);
+  await sendTelegram(`Order attempted:\n${JSON.stringify(record, null, 2)}`, { dedupeKey: `order:${record.ts}` });
 
   // after each order, evaluate PnL & stop conditions
   await evaluatePerformanceAndMaybeStop();
@@ -83,13 +83,13 @@ async function evaluatePerformanceAndMaybeStop(){
   const est = await estimatePortfolioKrw();
   const pct = (est - start)/start;
   // notify
-  await sendTelegram(`Performance check: estKrw=${Math.round(est)}, pct=${(pct*100).toFixed(2)}%`);
+  await sendTelegram(`Performance check: estKrw=${Math.round(est)}, pct=${(pct*100).toFixed(2)}%`, { dedupeKey: `perf_check:${Math.floor(Date.now()/60000)}` });
   if(pct >= targetPct){
-    await sendTelegram(`Daily target reached (${(pct*100).toFixed(2)}%). Pausing trading.`);
+    await sendTelegram(`Daily target reached (${(pct*100).toFixed(2)}%). Pausing trading.`, { dedupeKey: 'daily_target_reached' });
     process.exit(0);
   }
   if(pct <= stopLossPct){
-    await sendTelegram(`Stop-loss triggered (${(pct*100).toFixed(2)}%). Pausing trading.`);
+    await sendTelegram(`Stop-loss triggered (${(pct*100).toFixed(2)}%). Pausing trading.`, { dedupeKey: 'stop_loss_triggered' });
     process.exit(1);
   }
 }
@@ -103,7 +103,7 @@ async function dryRunLoop(hours=6, intervalSec=60){
     throw new Error('Run end time already passed; refusing to start loop');
   }
 
-  await sendTelegram(`Starting dry-run live_runner for ${hours}h. Limits: ${JSON.stringify(LIMITS)}`);
+  await sendTelegram(`Starting dry-run live_runner for ${hours}h. Limits: ${JSON.stringify(LIMITS)}`, { dedupeKey: 'live_runner_start' });
   while(Date.now() < end){
     try{
       // Simple example strategy: if last price dipped by >0.2% vs previous fetch, buy a small amount
@@ -120,7 +120,7 @@ async function dryRunLoop(hours=6, intervalSec=60){
       }
     }catch(err){
       console.error('run error', err.message);
-      await sendTelegram(`run error: ${err.message}`);
+      await sendTelegram(`run error: ${err.message}`, { dedupeKey: `run_error:${(err && err.message||'').slice(0,80)}` });
     }
     await new Promise(r => setTimeout(r, intervalSec*1000));
   }
