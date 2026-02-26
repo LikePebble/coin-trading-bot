@@ -46,6 +46,11 @@ const CONFIG = {
   SCALE_IN_ENABLED: true,         // allow adding to winning position
   SCALE_IN_THRESHOLD: 0.005,      // add more if up +0.5% and signal strong
 
+  // ── Trend Filter (higher timeframe) ──
+  TREND_EMA_SHORT: 50,
+  TREND_EMA_LONG: 200,
+  TREND_SLOPE_PERIODS: 10,
+
   // ── Risk Management ──
   DAILY_TARGET_PCT: 0.05,         // +5% daily target → pause
   DAILY_STOP_LOSS_PCT: -0.02,     // -2% daily stop → halt
@@ -175,6 +180,25 @@ function getIndicators() {
   };
 }
 
+// ─── Trend Filter (higher timeframe) ─────────────────────────
+function trendFilter() {
+  const prices = state.prices.map(p => p.price);
+  const short = CONFIG.TREND_EMA_SHORT;
+  const long = CONFIG.TREND_EMA_LONG;
+  const slopePeriods = CONFIG.TREND_SLOPE_PERIODS;
+  if (prices.length < Math.max(short, long, slopePeriods) + 1) return 'NEUTRAL';
+  const emaShort = calcEMA(prices, short);
+  const emaLong = calcEMA(prices, long);
+  if (emaShort === null || emaLong === null) return 'NEUTRAL';
+  // compute slope of short EMA: compare current value to value N periods ago
+  const sliced = prices.slice(0, prices.length - slopePeriods);
+  const emaShortPast = calcEMA(sliced, short);
+  const slope = (emaShort - (emaShortPast || emaShort)) / (emaShort || 1);
+  if (emaShort < emaLong && slope < 0) return 'DOWNTREND';
+  if (emaShort > emaLong) return 'UPTREND';
+  return 'NEUTRAL';
+}
+
 // ─── Signal Generation ───────────────────────────────────────
 function generateSignal(indicators) {
   if (!indicators) return { action: 'HOLD', reason: 'Insufficient data', strength: 0 };
@@ -278,8 +302,10 @@ async function getAvailableKrw() {
 }
 
 function calcPositionSize(price, availableKrw) {
-  const maxByPct = state.currentBalanceKrw * CONFIG.MAX_POSITION_PCT;
-  const orderKrw = Math.min(availableKrw, maxByPct, CONFIG.MAX_ORDER_KRW);
+  // Use real-time available KRW as primary constraint (not stale state.currentBalanceKrw)
+  const maxByPct = availableKrw; // prefer current available funds
+  const pctCap = state.currentBalanceKrw * CONFIG.MAX_POSITION_PCT; // keep legacy cap as an additional constraint
+  const orderKrw = Math.min(maxByPct, pctCap, CONFIG.MAX_ORDER_KRW);
   if (orderKrw < CONFIG.MIN_ORDER_KRW) return null;
   const quantity = Math.floor((orderKrw / price) * 1e8) / 1e8; // round down to 8 decimals
   const totalKrw = quantity * price;
@@ -540,13 +566,13 @@ async function checkScaleIn(currentPrice, signal) {
 
 // ─── Daily Risk Checks ──────────────────────────────────────
 async function checkDailyRisk() {
-  // Estimate current portfolio value
+  // Real-time current portfolio value: available KRW + current BTC position value + realized PnL
+  const availKrw = await getAvailableKrw();
   const ticker = await fetchTicker(CONFIG.SYMBOL);
   const curPrice = parseFloat(ticker?.data?.closing_price || 0);
   const positionValue = state.positions.reduce((sum, p) => sum + p.quantity * curPrice, 0);
-  // Rough KRW balance = starting - invested + position value + realized PnL
-  state.currentBalanceKrw = state.startingBalanceKrw + state.dailyPnlKrw;
-  const pnlPct = state.startingBalanceKrw > 0 ? state.dailyPnlKrw / state.startingBalanceKrw : 0;
+  state.currentBalanceKrw = availKrw + positionValue + state.dailyPnlKrw;
+  const pnlPct = state.startingBalanceKrw > 0 ? (state.currentBalanceKrw - state.startingBalanceKrw) / state.startingBalanceKrw : 0;
   state.dailyPnlPct = pnlPct;
 
   // Daily target — log only, do not stop
@@ -603,6 +629,25 @@ async function mainLoop() {
 
   // Load existing positions from account
   await loadAccountPositions();
+
+  // Reset daily counters if the saved state is from a different calendar day (Asia/Seoul)
+  try {
+    const tzOffset = 9 * 60; // minutes for Asia/Seoul
+    const startDate = new Date(state.startTs);
+    const nowDate = new Date();
+    const startYMD = new Date(startDate.getTime() + tzOffset*60000).toISOString().slice(0,10);
+    const nowYMD = new Date(nowDate.getTime() + tzOffset*60000).toISOString().slice(0,10);
+    if (startYMD !== nowYMD) {
+      log('New calendar day detected — resetting daily counters');
+      state.consecutiveLosses = 0;
+      state.dailyPnlKrw = 0;
+      state.dailyPnlPct = 0;
+      state.startTs = Date.now();
+    }
+  } catch (e) {
+    log('Failed to compare dates for daily reset: ' + e.message);
+  }
+
   notify(`💰 시작 자산: ${fmtKrw(state.startingBalanceKrw)}\n보유 포지션: ${state.positions.length}개`, { dedupeKey: 'strategy_start_assets' });
 
   const endTime = Date.now() + CONFIG.RUN_HOURS * 3600 * 1000;
@@ -641,17 +686,23 @@ async function mainLoop() {
 
       // 7. Execute entry if signal is strong enough
       if (signal.action === 'BUY' && !inCooldown) {
-        // Prevent duplicate buys: skip if we already have an open strategy position
-        const hasOpenPos = state.positions.some(p => p.source === 'strategy' && p.quantity > 0.00000001);
-        if (hasOpenPos) {
-          // Already in a position; skip new entry (scale-in handled separately)
+        // Trend filter: avoid buying during higher-timeframe downtrends
+        const trend = trendFilter();
+        if (trend === 'DOWNTREND') {
+          log('Buy skipped due to higher-timeframe downtrend');
         } else {
-          const availKrw = await getAvailableKrw();
-          const sizing = calcPositionSize(currentPrice, availKrw);
-          if (sizing) {
-            await executeBuy(currentPrice, sizing, signal);
+          // Prevent duplicate buys: skip if we already have an open strategy position
+          const hasOpenPos = state.positions.some(p => p.source === 'strategy' && p.quantity > 0.00000001);
+          if (hasOpenPos) {
+            // Already in a position; skip new entry (scale-in handled separately)
           } else {
-            log(`Buy signal but insufficient funds (available: ${fmtKrw(availKrw)}) or position limit reached`);
+            const availKrw = await getAvailableKrw();
+            const sizing = calcPositionSize(currentPrice, availKrw);
+            if (sizing) {
+              await executeBuy(currentPrice, sizing, signal);
+            } else {
+              log(`Buy signal but insufficient funds (available: ${fmtKrw(availKrw)}) or position limit reached`);
+            }
           }
         }
       }
