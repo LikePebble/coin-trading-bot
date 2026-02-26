@@ -60,6 +60,10 @@ const CONFIG = {
   // ── Runtime ──
   RUN_HOURS: parseFloat(process.env.DRY_RUN_HOURS || '24'),
   LOG_DIR: path.join(__dirname, '..', 'logs'),
+
+  // ── Multi-position controls ──
+  MAX_CONCURRENT_POSITIONS: 3,   // maximum simultaneous strategy positions
+  MIN_ENTRY_INTERVAL_SEC: 300,   // minimum seconds between new entries (dedupe)
 };
 
 // ─── State ───────────────────────────────────────────────────
@@ -691,17 +695,33 @@ async function mainLoop() {
         if (trend === 'DOWNTREND') {
           log('Buy skipped due to higher-timeframe downtrend');
         } else {
-          // Prevent duplicate buys: skip if we already have an open strategy position
-          const hasOpenPos = state.positions.some(p => p.source === 'strategy' && p.quantity > 0.00000001);
-          if (hasOpenPos) {
-            // Already in a position; skip new entry (scale-in handled separately)
+          // Multi-position rules
+          const openStrategyPositions = state.positions.filter(p => p.source === 'strategy' && p.quantity > 0.00000001);
+          if (openStrategyPositions.length >= CONFIG.MAX_CONCURRENT_POSITIONS) {
+            log(`New buy skipped: reached MAX_CONCURRENT_POSITIONS (${openStrategyPositions.length}/${CONFIG.MAX_CONCURRENT_POSITIONS})`);
           } else {
-            const availKrw = await getAvailableKrw();
-            const sizing = calcPositionSize(currentPrice, availKrw);
-            if (sizing) {
-              await executeBuy(currentPrice, sizing, signal);
+            // enforce minimum interval between entries
+            const lastEntryTs = openStrategyPositions.length > 0 ? Math.max(...openStrategyPositions.map(p => p.entryTs || 0)) : 0;
+            const now = Date.now();
+            if (lastEntryTs > 0 && (now - lastEntryTs) < CONFIG.MIN_ENTRY_INTERVAL_SEC * 1000) {
+              log(`New buy skipped: last entry too recent (${Math.round((now-lastEntryTs)/1000)}s < ${CONFIG.MIN_ENTRY_INTERVAL_SEC}s)`);
             } else {
-              log(`Buy signal but insufficient funds (available: ${fmtKrw(availKrw)}) or position limit reached`);
+              const availKrw = await getAvailableKrw();
+              // Apply per-position MAX_POSITION_PCT: ensure sizing uses at most that portion of current balance
+              // Note: calcPositionSize already applies CONFIG.MAX_POSITION_PCT against state.currentBalanceKrw
+              const sizing = calcPositionSize(currentPrice, availKrw);
+              if (sizing) {
+                // determine if this will be an additional entry for logging
+                const isAdditional = openStrategyPositions.length > 0;
+                const beforeCount = state.positions.filter(p => p.source === 'strategy' && p.quantity > 0.00000001).length;
+                const newPos = await executeBuy(currentPrice, sizing, signal);
+                if (newPos && isAdditional) {
+                  const n = beforeCount + 1;
+                  log(`추가 매수 (포지션 ${n}/${CONFIG.MAX_CONCURRENT_POSITIONS}): ${fmtBtc(newPos.quantity)} @ ${fmtKrw(newPos.rawEntryPrice)}`);
+                }
+              } else {
+                log(`Buy signal but insufficient funds (available: ${fmtKrw(availKrw)}) or position limit reached`);
+              }
             }
           }
         }
